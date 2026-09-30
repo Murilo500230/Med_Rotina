@@ -1,5 +1,5 @@
 // Paleta oficial do MedRotina — usar sempre este arquivo, nunca hex direto no componente
-export const Colors = {
+export const AppColors = {
   primary: '#028090',      // ações principais, botões, links
   primaryLight: '#E3F6F5', // fundos de destaque, ícones
   accent: '#02C39A',       // sucesso, confirmação
