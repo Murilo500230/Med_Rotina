@@ -1,0 +1,34 @@
+{
+  "name": "MedRotina Dev Environment",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+
+  "forwardPorts": [3000, 8081, 19000, 19001, 19002, 3306],
+  "portsAttributes": {
+    "3000": { "label": "Backend API (Node/Express)" },
+    "8081": { "label": "Expo Metro Bundler" },
+    "19000": { "label": "Expo Dev Tools" },
+    "3306": { "label": "MySQL" }
+  },
+
+  "postCreateCommand": "echo 'Ambiente pronto. Rode: cd backend && npm install'",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-mysql",
+        "msjsdiag.vscode-react-native"
+      ]
+    }
+  }
+}
