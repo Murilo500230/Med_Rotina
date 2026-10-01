@@ -1,6 +1,12 @@
 -- Schema do MedRotina
 -- Responsável (T2): Jailton dos Santos Silva Junior
 
+CREATE DATABASE IF NOT EXISTS medrotina
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+USE medrotina;
+
 CREATE TABLE IF NOT EXISTS usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(120) NOT NULL,
@@ -27,7 +33,7 @@ CREATE TABLE IF NOT EXISTS doses (
     id INT AUTO_INCREMENT PRIMARY KEY,
     medicamento_id INT NOT NULL,
     horario TIME NOT NULL,
-    status VARCHAR(30) DEFAULT 'pendente',
+    status ENUM('pendente', 'tomada', 'atrasada') NOT NULL DEFAULT 'pendente',
 
     CONSTRAINT fk_doses_medicamento
         FOREIGN KEY (medicamento_id)
