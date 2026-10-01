@@ -1,6 +1,8 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppColors } from '@/constants/colors';
+
 type Medicamento = {
   id: string;
   nome: string;
@@ -16,20 +18,10 @@ const medicamentosMock: Medicamento[] = [
   { id: '3', nome: 'Sinvastatina', dosagem: '20mg', horario: '21:00 - antes de dormir', status: 'futuro' },
 ];
 
-const CORES = {
-  primaria: '#028090',
-  fundoDestaque: '#E3F6F5',
-  sucesso: '#02C39A',
-  texto: '#1B2528',
-  textoSecundario: '#5B6B6E',
-  fundo: '#F7FAFA',
-  borda: '#DCE7E7',
-};
-
 function IconePorStatus({ status }: { status: Medicamento['status'] }) {
-  if (status === 'tomado') return <Text style={{ color: CORES.sucesso, fontSize: 18 }}>✓</Text>;
-  if (status === 'pendente') return <Text style={{ color: CORES.primaria, fontSize: 18 }}>●</Text>;
-  return <Text style={{ color: CORES.textoSecundario, fontSize: 18 }}>○</Text>;
+  if (status === 'tomado') return <Text style={{ color: AppColors.accent, fontSize: 18 }}>✓</Text>;
+  if (status === 'pendente') return <Text style={{ color: AppColors.primary, fontSize: 18 }}>●</Text>;
+  return <Text style={{ color: AppColors.textSecondary, fontSize: 18 }}>○</Text>;
 }
 
 export default function HomeScreen() {
@@ -73,7 +65,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: CORES.fundo,
+    backgroundColor: AppColors.background,
   },
   container: {
     padding: 20,
@@ -84,58 +76,58 @@ const styles = StyleSheet.create({
   },
   saudacao: {
     fontSize: 13,
-    color: CORES.textoSecundario,
+    color: AppColors.textSecondary,
   },
   titulo: {
     fontSize: 20,
     fontWeight: '600',
-    color: CORES.texto,
+    color: AppColors.text,
   },
   bannerDestaque: {
-    backgroundColor: CORES.fundoDestaque,
+    backgroundColor: AppColors.primaryLight,
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
   },
   bannerTexto: {
-    color: CORES.primaria,
+    color: AppColors.primary,
     fontWeight: '500',
   },
   subtitulo: {
     fontSize: 13,
-    color: CORES.textoSecundario,
+    color: AppColors.textSecondary,
     marginBottom: 4,
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: AppColors.surface,
     borderRadius: 12,
     padding: 14,
     gap: 12,
     borderWidth: 1,
-    borderColor: CORES.borda,
+    borderColor: AppColors.border,
   },
   iconeWrapper: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: CORES.fundo,
+    backgroundColor: AppColors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
   nomeMedicamento: {
     fontSize: 15,
     fontWeight: '600',
-    color: CORES.texto,
+    color: AppColors.text,
   },
   horario: {
     fontSize: 13,
-    color: CORES.textoSecundario,
+    color: AppColors.textSecondary,
     marginTop: 2,
   },
   botaoMarcar: {
-    backgroundColor: CORES.primaria,
+    backgroundColor: AppColors.primary,
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 12,
