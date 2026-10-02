@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+const authRoutes = require("./routes/auth");
+
 const app = express();
 
 app.use(cors());
@@ -23,7 +25,8 @@ app.get("/health/db", async (req, res) => {
   }
 });
 
-// TODO (T3): registrar rotas de autenticação -> require("./routes/auth")
+app.use(authRoutes);
+
 // TODO (T4): registrar rotas de medicamentos -> require("./routes/medicamentos")
 
 const PORT = process.env.PORT || 3000;
