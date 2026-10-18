@@ -3,7 +3,8 @@ import { Platform } from 'react-native';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -36,7 +37,7 @@ export async function agendarLembrete(
 
   return Notifications.scheduleNotificationAsync({
     content: {
-      title: 'Hora do remédio 💊',
+      title: 'Hora do remédio',
       body: `${medicamento.nome} - ${medicamento.dosagem}`,
       data: { medicamentoId: medicamento.id },
     },
