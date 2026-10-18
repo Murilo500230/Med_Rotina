@@ -12,7 +12,7 @@ function gerarToken(usuario) {
 
   return jwt.sign(
     {
-      sub: usuario.id,
+      sub: String(usuario.id),
       nome: usuario.nome,
       email: usuario.email,
     },

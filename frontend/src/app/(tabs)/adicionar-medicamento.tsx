@@ -1,20 +1,22 @@
+import { router } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AdicionarMedicamentoForm } from '@/components/medicamentos/adicionar-medicamento-form';
 import { AppColors } from '@/constants/colors';
-import { obterAuthToken } from '@/services/auth-session';
+import { useAuth } from '@/context/auth-context';
 import { cadastrarMedicamento, type NovoMedicamento } from '@/services/medicamentos';
 
 export default function AdicionarMedicamentoScreen() {
-  async function salvarMedicamento(dados: NovoMedicamento) {
-    const token = obterAuthToken();
+  const { sessao } = useAuth();
 
-    if (!token) {
+  async function salvarMedicamento(dados: NovoMedicamento) {
+    if (!sessao?.token) {
       throw new Error('Faça login novamente antes de cadastrar um medicamento');
     }
 
-    await cadastrarMedicamento(dados, token);
+    await cadastrarMedicamento(dados, sessao.token);
+    router.replace('/');
   }
 
   return (
