@@ -1,15 +1,24 @@
 import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AuthProvider, useAuth } from '@/context/auth-context';
+import { configurarNotificacoes } from '@/services/notificacoes';
 
 SplashScreen.preventAutoHideAsync();
 
 // Decide qual grupo de telas fica disponível conforme o usuário esteja logado ou não
 function RootNavigator() {
   const { sessao, carregando } = useAuth();
+
+  // Pede permissão de notificações assim que o usuário estiver logado
+  useEffect(() => {
+    if (sessao) {
+      configurarNotificacoes();
+    }
+  }, [sessao]);
 
   // Enquanto a sessão salva é restaurada, mantém só a splash na tela
   if (carregando) return <AnimatedSplashOverlay />;
