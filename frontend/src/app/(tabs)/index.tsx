@@ -1,60 +1,87 @@
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppColors } from '@/constants/colors';
-
-type Medicamento = {
-  id: string;
-  nome: string;
-  dosagem: string;
-  horario: string;
-  status: 'tomado' | 'pendente' | 'futuro';
-};
-
-// Dados de exemplo (mock) - serão substituídos pela chamada à API (T4) quando estiver pronta
-const medicamentosMock: Medicamento[] = [
-  { id: '1', nome: 'Losartana', dosagem: '50mg', horario: '08:00', status: 'tomado' },
-  { id: '2', nome: 'Metformina', dosagem: '850mg', horario: '13:00 - com almoço', status: 'pendente' },
-  { id: '3', nome: 'Sinvastatina', dosagem: '20mg', horario: '21:00 - antes de dormir', status: 'futuro' },
-];
-
-function IconePorStatus({ status }: { status: Medicamento['status'] }) {
-  if (status === 'tomado') return <Text style={{ color: AppColors.accent, fontSize: 18 }}>✓</Text>;
-  if (status === 'pendente') return <Text style={{ color: AppColors.primary, fontSize: 18 }}>●</Text>;
-  return <Text style={{ color: AppColors.textSecondary, fontSize: 18 }}>○</Text>;
-}
+import { useAuth } from '@/context/auth-context';
+import { listarMedicamentos, type Medicamento } from '@/services/medicamentos';
 
 export default function HomeScreen() {
+  const { sessao } = useAuth();
+  const token = sessao?.token;
+  const [medicamentos, setMedicamentos] = useState<Medicamento[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState('');
+
+  const carregarMedicamentos = useCallback(async () => {
+    if (!token) return;
+    setCarregando(true);
+    setErro('');
+    try {
+      const lista = await listarMedicamentos(token);
+      setMedicamentos(lista);
+    } catch (falha) {
+      setErro(falha instanceof Error ? falha.message : 'Não foi possível carregar os medicamentos');
+    } finally {
+      setCarregando(false);
+    }
+  }, [token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void carregarMedicamentos();
+    }, [carregarMedicamentos]),
+  );
+
+  const primeiroNome = sessao?.usuario.nome.split(' ')[0] || 'usuário';
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.saudacao}>Olá, Murilo</Text>
-          <Text style={styles.titulo}>Hoje, terça-feira</Text>
+          <Text style={styles.saudacao}>Olá, {primeiroNome}</Text>
+          <Text style={styles.titulo}>Seus medicamentos</Text>
         </View>
 
         <View style={styles.bannerDestaque}>
-          <Text style={styles.bannerTexto}>Próxima dose em 45 min</Text>
+          <Text style={styles.bannerTexto}>
+            {medicamentos.length === 0
+              ? 'Cadastre seu primeiro medicamento'
+              : `${medicamentos.length} medicamento${medicamentos.length === 1 ? '' : 's'} cadastrado${medicamentos.length === 1 ? '' : 's'}`}
+          </Text>
         </View>
 
-        <Text style={styles.subtitulo}>Doses de hoje</Text>
+        {carregando ? <ActivityIndicator color={AppColors.primary} /> : null}
 
-        {medicamentosMock.map((med) => (
-          <View key={med.id} style={styles.card}>
+        {erro ? (
+          <View style={styles.estadoVazio}>
+            <Text style={styles.erro}>{erro}</Text>
+            <TouchableOpacity onPress={() => void carregarMedicamentos()}>
+              <Text style={styles.tentarNovamente}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {!carregando && !erro && medicamentos.length === 0 ? (
+          <Text style={styles.estadoVazioTexto}>Nenhum medicamento cadastrado ainda.</Text>
+        ) : null}
+
+        {!erro && medicamentos.map((medicamento) => (
+          <View key={medicamento.id} style={styles.card}>
             <View style={styles.iconeWrapper}>
-              <IconePorStatus status={med.status} />
+              <Text style={styles.icone}>●</Text>
             </View>
-            <View style={{ flex: 1 }}>
+            <View style={styles.cardConteudo}>
               <Text style={styles.nomeMedicamento}>
-                {med.nome} {med.dosagem}
+                {medicamento.nome} {medicamento.dosagem}
               </Text>
-              <Text style={styles.horario}>{med.horario}</Text>
+              <Text style={styles.horario}>
+                {medicamento.horarios.length > 0
+                  ? medicamento.horarios.join(' • ')
+                  : medicamento.frequencia}
+              </Text>
             </View>
-            {med.status === 'pendente' && (
-              <TouchableOpacity style={styles.botaoMarcar}>
-                <Text style={styles.botaoMarcarTexto}>Marcar</Text>
-              </TouchableOpacity>
-            )}
           </View>
         ))}
       </ScrollView>
@@ -93,11 +120,6 @@ const styles = StyleSheet.create({
     color: AppColors.primary,
     fontWeight: '500',
   },
-  subtitulo: {
-    fontSize: 13,
-    color: AppColors.textSecondary,
-    marginBottom: 4,
-  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -108,6 +130,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: AppColors.border,
   },
+  cardConteudo: {
+    flex: 1,
+  },
   iconeWrapper: {
     width: 36,
     height: 36,
@@ -115,6 +140,10 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.background,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  icone: {
+    color: AppColors.primary,
+    fontSize: 18,
   },
   nomeMedicamento: {
     fontSize: 15,
@@ -126,15 +155,22 @@ const styles = StyleSheet.create({
     color: AppColors.textSecondary,
     marginTop: 2,
   },
-  botaoMarcar: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+  estadoVazio: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 20,
   },
-  botaoMarcarTexto: {
-    color: '#fff',
-    fontSize: 12,
+  estadoVazioTexto: {
+    color: AppColors.textSecondary,
+    paddingVertical: 20,
+    textAlign: 'center',
+  },
+  erro: {
+    color: AppColors.danger,
+    textAlign: 'center',
+  },
+  tentarNovamente: {
+    color: AppColors.primary,
     fontWeight: '600',
   },
 });
