@@ -47,7 +47,8 @@ async function request<T>(path: string, body: unknown, token?: string | null): P
   const dados = await resposta.json().catch(() => ({}));
   if (!resposta.ok) {
     const mensagem =
-      (dados as { message?: string; error?: string }).message ??
+      (dados as { erro?: string }).erro ??
+      (dados as { message?: string }).message ??
       (dados as { error?: string }).error ??
       'Ocorreu um erro. Tente novamente.';
     throw new ApiError(mensagem, resposta.status);

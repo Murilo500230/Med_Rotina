@@ -2,16 +2,15 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+const authRoutes = require("./routes/auth");
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Rotas de medicamentos
-app.use(
-  "/medicamentos",
-  require("./routes/medicamentos.routes")
-);
+app.use(authRoutes);
+app.use("/medicamentos", require("./routes/medicamentos.routes"));
 
 // Rota de teste - confirma que a API está no ar
 app.get("/", (req, res) => {
@@ -37,8 +36,6 @@ app.get("/health/db", async (req, res) => {
     });
   }
 });
-
-// TODO (T3): registrar rotas de autenticação
 
 // Tratamento de erros - depois das rotas
 app.use((err, req, res, next) => {

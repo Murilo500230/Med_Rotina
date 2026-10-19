@@ -27,6 +27,9 @@ export default function AppTabs() {
           <TabTrigger name="perfil" href="/perfil" asChild>
             <TabButton>Perfil</TabButton>
           </TabTrigger>
+          <TabTrigger name="adicionar-medicamento" href="/adicionar-medicamento" asChild>
+            <TabButton>Adicionar</TabButton>
+          </TabTrigger>
         </CustomTabList>
       </TabList>
     </Tabs>
