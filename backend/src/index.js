@@ -11,6 +11,7 @@ app.use(express.json());
 
 app.use(authRoutes);
 app.use("/medicamentos", require("./routes/medicamentos.routes"));
+app.use("/doses", require("./routes/doses.routes"));
 
 // Rota de teste - confirma que a API está no ar
 app.get("/", (req, res) => {
