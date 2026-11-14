@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const authRoutes = require("./routes/auth");
+const { iniciarRotinaAlertas } = require("./services/alertaService");
 
 const app = express();
 
@@ -12,6 +13,8 @@ app.use(express.json());
 app.use(authRoutes);
 app.use("/medicamentos", require("./routes/medicamentos.routes"));
 app.use("/doses", require("./routes/doses.routes"));
+app.use("/cuidadores", require("./routes/cuidadores.routes"));
+app.use("/alertas", require("./routes/alertas.routes"));
 
 // Rota de teste - confirma que a API está no ar
 app.get("/", (req, res) => {
@@ -67,4 +70,9 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
+
+  if (process.env.ALERTAS_AUTOMATICOS !== "false") {
+    const intervaloMinutos = Number(process.env.ALERTAS_INTERVALO_MINUTOS) || 5;
+    iniciarRotinaAlertas(intervaloMinutos);
+  }
 });
