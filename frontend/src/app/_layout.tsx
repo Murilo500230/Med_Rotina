@@ -11,7 +11,7 @@ SplashScreen.preventAutoHideAsync();
 
 // Decide qual grupo de telas fica disponível conforme o usuário esteja logado ou não
 function RootNavigator() {
-  const { sessao, carregando } = useAuth();
+  const { sessao, carregando, onboardingVisto } = useAuth();
 
   // Pede permissão de notificações assim que o usuário estiver logado
   useEffect(() => {
@@ -20,12 +20,15 @@ function RootNavigator() {
     }
   }, [sessao]);
 
-  // Enquanto a sessão salva é restaurada, mantém só a splash na tela
-  if (carregando) return <AnimatedSplashOverlay />;
+  // Enquanto a sessão salva é restaurada (e a preferência do usuário lida), mantém só a splash na tela
+  if (carregando || (sessao && onboardingVisto === null)) return <AnimatedSplashOverlay />;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!!sessao}>
+      <Stack.Protected guard={!!sessao && onboardingVisto === false}>
+        <Stack.Screen name="onboarding" />
+      </Stack.Protected>
+      <Stack.Protected guard={!!sessao && onboardingVisto === true}>
         <Stack.Screen name="(tabs)" />
       </Stack.Protected>
       <Stack.Protected guard={!sessao}>

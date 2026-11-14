@@ -1,7 +1,7 @@
 // Cliente HTTP do MedRotina. Concentra a URL base e os endpoints da API (T3/T4).
 // Em dispositivo físico, "localhost" não funciona: defina EXPO_PUBLIC_API_URL
 // em frontend/.env com o endereço da máquina/Codespace que roda o back-end.
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 // Se a equipe de back-end usar outros caminhos, basta ajustar aqui.
 export const ENDPOINTS = {
