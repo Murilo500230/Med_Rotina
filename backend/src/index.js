@@ -15,6 +15,7 @@ app.use("/medicamentos", require("./routes/medicamentos.routes"));
 app.use("/doses", require("./routes/doses.routes"));
 app.use("/cuidadores", require("./routes/cuidadores.routes"));
 app.use("/alertas", require("./routes/alertas.routes"));
+app.use("/historico", require("./routes/historico.routes"));
 
 // Rota de teste - confirma que a API está no ar
 app.get("/", (req, res) => {

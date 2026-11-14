@@ -20,16 +20,28 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="perfil">
-        <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="historico">
+        <NativeTabs.Trigger.Label>Histórico</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
-          src={require('@/assets/images/tabIcons/explore.png')}
+          src={require('@/assets/images/tabIcons/history.png')}
           renderingMode="template"
         />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="adicionar-medicamento">
         <NativeTabs.Trigger.Label>Adicionar</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          src={require('@/assets/images/tabIcons/pill.png')}
+          renderingMode="template"
+        />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="perfil">
+        <NativeTabs.Trigger.Label>Perfil</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          src={require('@/assets/images/tabIcons/user.png')}
+          renderingMode="template"
+        />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
