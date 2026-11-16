@@ -53,3 +53,52 @@ export async function agendarLembrete(
 export async function cancelarLembrete(notificationId: string): Promise<void> {
   await Notifications.cancelScheduledNotificationAsync(notificationId);
 }
+
+// ---------------------------------------------------------------
+// T12 - lembretes ligados aos medicamentos
+// ---------------------------------------------------------------
+
+// Cadastro: agenda um lembrete diario para cada horario do medicamento
+export async function agendarLembretesDoMedicamento(
+  medicamento: Medicamento,
+  horarios: string[]
+): Promise<void> {
+  for (const horario of horarios) {
+    await agendarLembrete(medicamento, horario);
+  }
+}
+
+// Exclusao: cancela todos os lembretes daquele medicamento
+export async function cancelarLembretesDoMedicamento(
+  medicamentoId: string | number
+): Promise<void> {
+  const agendadas = await Notifications.getAllScheduledNotificationsAsync();
+
+  for (const item of agendadas) {
+    const idDaNotificacao = item.content.data?.medicamentoId;
+    if (String(idDaNotificacao) === String(medicamentoId)) {
+      await Notifications.cancelScheduledNotificationAsync(item.identifier);
+    }
+  }
+}
+
+// Edicao: cancela os lembretes antigos e agenda os novos
+export async function reagendarLembretesDoMedicamento(
+  medicamento: Medicamento,
+  horarios: string[]
+): Promise<void> {
+  await cancelarLembretesDoMedicamento(medicamento.id);
+  await agendarLembretesDoMedicamento(medicamento, horarios);
+}
+
+// Abrir o app / login: refaz tudo a partir da lista da API
+// (util apos reinstalar o app ou trocar de celular)
+export async function sincronizarLembretes(
+  medicamentos: (Medicamento & { horarios: string[] })[]
+): Promise<void> {
+  await Notifications.cancelAllScheduledNotificationsAsync();
+
+  for (const medicamento of medicamentos) {
+    await agendarLembretesDoMedicamento(medicamento, medicamento.horarios);
+  }
+}
