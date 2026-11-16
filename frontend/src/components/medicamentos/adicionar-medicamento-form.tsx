@@ -14,15 +14,24 @@ import type { NovoMedicamento } from '@/services/medicamentos';
 
 type Props = {
   onSubmit: (dados: NovoMedicamento) => Promise<void>;
+  // T16: para reaproveitar o formulário na edição
+  inicial?: NovoMedicamento;
+  rotuloBotao?: string;
+  limparAoSalvar?: boolean;
 };
 
 const HORARIO_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-export function AdicionarMedicamentoForm({ onSubmit }: Props) {
-  const [nome, setNome] = useState('');
-  const [dosagem, setDosagem] = useState('');
+export function AdicionarMedicamentoForm({
+  onSubmit,
+  inicial,
+  rotuloBotao = 'Salvar medicamento',
+  limparAoSalvar = true,
+}: Props) {
+  const [nome, setNome] = useState(inicial?.nome ?? '');
+  const [dosagem, setDosagem] = useState(inicial?.dosagem ?? '');
   const [horario, setHorario] = useState('');
-  const [horarios, setHorarios] = useState<string[]>([]);
+  const [horarios, setHorarios] = useState<string[]>(inicial?.horarios ?? []);
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -65,13 +74,15 @@ export function AdicionarMedicamentoForm({ onSubmit }: Props) {
         dosagem: dosagem.trim(),
         horarios,
       });
-      setNome('');
-      setDosagem('');
-      setHorario('');
-      setHorarios([]);
-      setSucesso('Medicamento cadastrado com sucesso');
+      if (limparAoSalvar) {
+        setNome('');
+        setDosagem('');
+        setHorario('');
+        setHorarios([]);
+        setSucesso('Medicamento cadastrado com sucesso');
+      }
     } catch (falha) {
-      setErro(falha instanceof Error ? falha.message : 'Não foi possível cadastrar o medicamento');
+      setErro(falha instanceof Error ? falha.message : 'Não foi possível salvar o medicamento');
     } finally {
       setEnviando(false);
     }
@@ -161,7 +172,7 @@ export function AdicionarMedicamentoForm({ onSubmit }: Props) {
         {enviando ? (
           <ActivityIndicator color="#FFFFFF" />
         ) : (
-          <Text style={styles.botaoPrincipalTexto}>Salvar medicamento</Text>
+          <Text style={styles.botaoPrincipalTexto}>{rotuloBotao}</Text>
         )}
       </Pressable>
     </View>
