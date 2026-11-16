@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -36,6 +37,7 @@ export default function PerfilScreen() {
           <Text style={styles.valor}>{sessao?.usuario.email}</Text>
         </View>
 
+        <PrimaryButton titulo="Meus cuidadores" variante="secundario" onPress={() => router.push('/cuidadores')} />
         <PrimaryButton titulo="Ver introdução novamente" variante="secundario" onPress={() => void reverOnboarding()} />
         <PrimaryButton titulo="Sair da conta" onPress={() => void signOut()} />
       </ScrollView>

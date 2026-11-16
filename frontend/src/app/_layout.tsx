@@ -30,6 +30,7 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={!!sessao && onboardingVisto === true}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="cuidadores" />
       </Stack.Protected>
       <Stack.Protected guard={!sessao}>
         <Stack.Screen name="(auth)" />
