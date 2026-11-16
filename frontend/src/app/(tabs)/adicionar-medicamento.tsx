@@ -6,6 +6,7 @@ import { AdicionarMedicamentoForm } from '@/components/medicamentos/adicionar-me
 import { AppColors } from '@/constants/colors';
 import { useAuth } from '@/context/auth-context';
 import { cadastrarMedicamento, type NovoMedicamento } from '@/services/medicamentos';
+import { agendarLembretesDoMedicamento, configurarNotificacoes } from '@/services/notificacoes';
 
 export default function AdicionarMedicamentoScreen() {
   const { sessao } = useAuth();
@@ -15,7 +16,18 @@ export default function AdicionarMedicamentoScreen() {
       throw new Error('Faça login novamente antes de cadastrar um medicamento');
     }
 
-    await cadastrarMedicamento(dados, sessao.token);
+    const medicamento = await cadastrarMedicamento(dados, sessao.token);
+
+    // T12: agenda os lembretes nos horários informados
+    try {
+      const permitido = await configurarNotificacoes();
+      if (permitido) {
+        await agendarLembretesDoMedicamento(medicamento, dados.horarios);
+      }
+    } catch {
+      // se o lembrete falhar, o medicamento já foi salvo, então segue o fluxo
+    }
+
     router.replace('/');
   }
 
@@ -58,3 +70,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+
