@@ -10,6 +10,7 @@ import { useAuth } from '@/context/auth-context';
 import { ApiError } from '@/services/api';
 import { carregarHoje, tomarDose, type DoseApi, type PainelHoje } from '@/services/doses';
 import { listarMedicamentos, type Medicamento } from '@/services/medicamentos';
+import { configurarNotificacoes, sincronizarLembretes } from '@/services/notificacoes';
 import { agoraEmMinutos, classificar, horaLocal, horarioCurto, minutosDoDia, type StatusTela } from '@/utils/doses';
 import { dataLonga, duracaoCurta } from '@/utils/formatacao';
 
@@ -25,6 +26,18 @@ const COR_STATUS: Record<StatusTela, string> = {
 function Icone({ status }: { status: StatusTela }) {
   const simbolo = status === 'tomada' ? '✓' : status === 'futura' ? '○' : '●';
   return <Text style={{ color: COR_STATUS[status], fontSize: 18 }}>{simbolo}</Text>;
+}
+
+// T12: refaz os lembretes locais a partir da lista que veio da API
+async function sincronizarSePermitido(lista: Medicamento[]) {
+  try {
+    const permitido = await configurarNotificacoes();
+    if (permitido) {
+      await sincronizarLembretes(lista);
+    }
+  } catch {
+    // se falhar, o app segue normal; tenta de novo na próxima vez que abrir
+  }
 }
 
 function montarBanner(doses: DoseTela[], agoraMin: number) {
@@ -69,6 +82,7 @@ export default function HomeScreen() {
   const [processando, setProcessando] = useState<number | null>(null);
   const [erroAcao, setErroAcao] = useState('');
   const primeiraCarga = useRef(true);
+  const lembretesSincronizados = useRef(false);
 
   const tratarErro = useCallback(
     (falha: unknown, padrao: string) => {
@@ -89,6 +103,12 @@ export default function HomeScreen() {
         setPainel(hoje);
         setMedicamentos(lista);
         setErro('');
+
+        // T12: sincroniza os lembretes só uma vez, na primeira carga com sucesso
+        if (!lembretesSincronizados.current) {
+          lembretesSincronizados.current = true;
+          void sincronizarSePermitido(lista);
+        }
       } catch (falha) {
         // Em atualizações automáticas, mantém o que já está na tela
         if (!silencioso || primeiraCarga.current) setErro(tratarErro(falha, 'Não foi possível carregar as doses'));
