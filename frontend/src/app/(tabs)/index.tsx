@@ -1,15 +1,38 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ErroComRetentar, Selo } from '@/components/estado';
+import { AdicionarMedicamentoForm } from '@/components/medicamentos/adicionar-medicamento-form';
 import { PrimaryButton } from '@/components/primary-button';
 import { AppColors } from '@/constants/colors';
 import { useAuth } from '@/context/auth-context';
 import { ApiError } from '@/services/api';
 import { carregarHoje, tomarDose, type DoseApi, type PainelHoje } from '@/services/doses';
-import { listarMedicamentos, type Medicamento } from '@/services/medicamentos';
+import {
+  atualizarMedicamento,
+  excluirMedicamento,
+  listarMedicamentos,
+  type Medicamento,
+  type NovoMedicamento,
+} from '@/services/medicamentos';
+import {
+  cancelarLembretesDoMedicamento,
+  configurarNotificacoes,
+  reagendarLembretesDoMedicamento,
+  sincronizarLembretes,
+} from '@/services/notificacoes';
 import { agoraEmMinutos, classificar, horaLocal, horarioCurto, minutosDoDia, type StatusTela } from '@/utils/doses';
 import { dataLonga, duracaoCurta } from '@/utils/formatacao';
 
@@ -25,6 +48,18 @@ const COR_STATUS: Record<StatusTela, string> = {
 function Icone({ status }: { status: StatusTela }) {
   const simbolo = status === 'tomada' ? '✓' : status === 'futura' ? '○' : '●';
   return <Text style={{ color: COR_STATUS[status], fontSize: 18 }}>{simbolo}</Text>;
+}
+
+// T12: refaz os lembretes locais a partir da lista que veio da API
+async function sincronizarSePermitido(lista: Medicamento[]) {
+  try {
+    const permitido = await configurarNotificacoes();
+    if (permitido) {
+      await sincronizarLembretes(lista);
+    }
+  } catch {
+    // se falhar, o app segue normal; tenta de novo na próxima vez que abrir
+  }
 }
 
 function montarBanner(doses: DoseTela[], agoraMin: number) {
@@ -68,7 +103,10 @@ export default function HomeScreen() {
   const [erro, setErro] = useState('');
   const [processando, setProcessando] = useState<number | null>(null);
   const [erroAcao, setErroAcao] = useState('');
+  const [emEdicao, setEmEdicao] = useState<Medicamento | null>(null);
+  const [excluindo, setExcluindo] = useState<number | null>(null);
   const primeiraCarga = useRef(true);
+  const lembretesSincronizados = useRef(false);
 
   const tratarErro = useCallback(
     (falha: unknown, padrao: string) => {
@@ -89,6 +127,12 @@ export default function HomeScreen() {
         setPainel(hoje);
         setMedicamentos(lista);
         setErro('');
+
+        // T12: sincroniza os lembretes só uma vez, na primeira carga com sucesso
+        if (!lembretesSincronizados.current) {
+          lembretesSincronizados.current = true;
+          void sincronizarSePermitido(lista);
+        }
       } catch (falha) {
         // Em atualizações automáticas, mantém o que já está na tela
         if (!silencioso || primeiraCarga.current) setErro(tratarErro(falha, 'Não foi possível carregar as doses'));
@@ -121,6 +165,61 @@ export default function HomeScreen() {
       setErroAcao(tratarErro(falha, 'Não foi possível marcar a dose'));
     } finally {
       setProcessando(null);
+    }
+  }
+
+  // T16: salva a edição e reagenda os lembretes com os novos horários
+  async function salvarEdicao(dados: NovoMedicamento) {
+    if (!token || !emEdicao) return;
+
+    await atualizarMedicamento(emEdicao.id, dados, token);
+
+    try {
+      const permitido = await configurarNotificacoes();
+      if (permitido) {
+        await reagendarLembretesDoMedicamento(
+          { id: emEdicao.id, nome: dados.nome, dosagem: dados.dosagem },
+          dados.horarios,
+        );
+      }
+    } catch {
+      // o medicamento já foi salvo; segue o fluxo mesmo se o lembrete falhar
+    }
+
+    setEmEdicao(null);
+    await carregar(true);
+  }
+
+  // T16: pede confirmação antes de excluir
+  function confirmarExclusao(medicamento: Medicamento) {
+    Alert.alert(
+      'Excluir medicamento',
+      `Deseja excluir ${medicamento.nome}? Os lembretes dele também serão cancelados.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: () => void excluir(medicamento) },
+      ],
+    );
+  }
+
+  async function excluir(medicamento: Medicamento) {
+    if (!token || excluindo !== null) return;
+    setExcluindo(medicamento.id);
+    setErroAcao('');
+    try {
+      await excluirMedicamento(medicamento.id, token);
+
+      try {
+        await cancelarLembretesDoMedicamento(medicamento.id);
+      } catch {
+        // o medicamento já foi excluído; segue o fluxo
+      }
+
+      await carregar(true);
+    } catch (falha) {
+      setErroAcao(tratarErro(falha, 'Não foi possível excluir o medicamento'));
+    } finally {
+      setExcluindo(null);
     }
   }
 
@@ -255,6 +354,26 @@ export default function HomeScreen() {
               <Text style={styles.horario}>
                 {medicamento.horarios.length > 0 ? medicamento.horarios.join(' • ') : medicamento.frequencia}
               </Text>
+              <View style={styles.acoes}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Editar ${medicamento.nome}`}
+                  disabled={excluindo !== null}
+                  onPress={() => setEmEdicao(medicamento)}>
+                  <Text style={styles.acaoEditar}>Editar</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Excluir ${medicamento.nome}`}
+                  disabled={excluindo !== null}
+                  onPress={() => confirmarExclusao(medicamento)}>
+                  {excluindo === medicamento.id ? (
+                    <ActivityIndicator color={AppColors.danger} size="small" />
+                  ) : (
+                    <Text style={styles.acaoExcluir}>Excluir</Text>
+                  )}
+                </Pressable>
+              </View>
             </View>
           </View>
         ))}
@@ -267,6 +386,28 @@ export default function HomeScreen() {
           />
         </View>
       </ScrollView>
+
+      <Modal visible={emEdicao !== null} animationType="slide" onRequestClose={() => setEmEdicao(null)}>
+        <SafeAreaView style={styles.safeArea}>
+          <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+            <Text style={styles.titulo}>Editar medicamento</Text>
+            {emEdicao ? (
+              <AdicionarMedicamentoForm
+                key={emEdicao.id}
+                inicial={{
+                  nome: emEdicao.nome,
+                  dosagem: emEdicao.dosagem,
+                  horarios: emEdicao.horarios,
+                }}
+                rotuloBotao="Salvar alterações"
+                limparAoSalvar={false}
+                onSubmit={salvarEdicao}
+              />
+            ) : null}
+            <PrimaryButton titulo="Cancelar" variante="secundario" onPress={() => setEmEdicao(null)} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -318,6 +459,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   botaoMarcarTexto: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  acoes: { flexDirection: 'row', gap: 18, marginTop: 8 },
+  acaoEditar: { fontSize: 13, fontWeight: '600', color: AppColors.primary },
+  acaoExcluir: { fontSize: 13, fontWeight: '600', color: AppColors.danger },
   erroAcao: { color: AppColors.danger, fontSize: 13 },
   vazio: { alignItems: 'center', paddingVertical: 24, gap: 6 },
   vazioTitulo: { fontSize: 15, fontWeight: '600', color: AppColors.text },
