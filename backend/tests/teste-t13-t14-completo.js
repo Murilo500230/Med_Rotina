@@ -30,6 +30,20 @@ app.get("/health/db", async (req, res) => {
 let server;
 let baseUrl;
 
+// HH:MM de alguns minutos atrás, no fuso do servidor (não passa de 00:00 para não cair no dia anterior)
+function horarioHaMinutos(minutos) {
+  const partes = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const h = Number(partes.find((p) => p.type === "hour").value);
+  const m = Number(partes.find((p) => p.type === "minute").value);
+  const total = Math.max(0, h * 60 + m - minutos);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
 function requisicao(metodo, caminho, { token, corpo } = {}) {
   return new Promise((resolve, reject) => {
     const url = new URL(caminho, baseUrl);
@@ -221,7 +235,7 @@ async function rodarTestes() {
     corpo: {
       nome: "Losartana Potássica",
       dosagem: "50 mg",
-      horarios: ["06:00"], // Horário da manhã, já ultrapassou o horário atual com folga
+      horarios: [horarioHaMinutos(30)], // 30 min atrás: já passou do prazo, mas ainda está na janela de alerta
     },
   });
   asserir(resMed.status === 201, "Medicamento de teste criado com sucesso");

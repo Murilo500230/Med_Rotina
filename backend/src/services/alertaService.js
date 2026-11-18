@@ -3,6 +3,8 @@ const nodemailer = require("nodemailer");
 
 const FUSO = "America/Sao_Paulo";
 const TOLERANCIA_PADRAO_MINUTOS = 30;
+// Só avisa sobre doses recentes: doses de ontem ou mais antigas não geram aviso.
+const JANELA_ALERTA_HORAS = Math.max(1, Math.floor(Number(process.env.ALERTA_JANELA_HORAS)) || 6);
 
 function obterAgora() {
   const partes = new Intl.DateTimeFormat("en-GB", {
@@ -106,13 +108,13 @@ async function verificarEDispararAlertas(options = {}) {
     FROM doses_diarias dd
     INNER JOIN usuarios u ON u.id = dd.usuario_id
     WHERE (dd.status != 'tomada' AND dd.tomada_em IS NULL)
-      AND (
-        dd.data < ?
-        OR (
-          dd.data = ?
-          AND TIMESTAMPADD(MINUTE, ?, dd.horario) <= ?
-        )
+      AND dd.medicamento_id IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM doses d
+         WHERE d.medicamento_id = dd.medicamento_id AND d.horario = dd.horario
       )
+      AND TIMESTAMP(dd.data, dd.horario) <= TIMESTAMPADD(MINUTE, -?, TIMESTAMP(?, ?))
+      AND TIMESTAMP(dd.data, dd.horario) >= TIMESTAMPADD(HOUR, -${JANELA_ALERTA_HORAS}, TIMESTAMP(?, ?))
       ${usuarioId ? "AND dd.usuario_id = ?" : ""}
     ORDER BY dd.data ASC, dd.horario ASC
   `;
@@ -120,9 +122,10 @@ async function verificarEDispararAlertas(options = {}) {
   const paramsDoses = [
     agora.data,
     agora.horario,
-    agora.data,
-    agora.data,
     tolerancia,
+    agora.data,
+    agora.horario,
+    agora.data,
     agora.horario,
   ];
 

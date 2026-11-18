@@ -78,8 +78,8 @@ exports.listarHoje = async (req, res, next) => {
       `SELECT
          id,
          medicamento_id,
-         nome_medicamento,
-         dosagem,
+         COALESCE((SELECT m.nome FROM medicamentos m WHERE m.id = doses_diarias.medicamento_id), nome_medicamento) AS nome_medicamento,
+         COALESCE((SELECT m.dosagem FROM medicamentos m WHERE m.id = doses_diarias.medicamento_id), dosagem) AS dosagem,
          DATE_FORMAT(data, '%Y-%m-%d') AS data,
          TIME_FORMAT(horario, '%H:%i:%s') AS horario,
          CASE
@@ -93,6 +93,15 @@ exports.listarHoje = async (req, res, next) => {
          END AS tomada_em
        FROM doses_diarias
        WHERE usuario_id = ? AND data = ?
+         AND medicamento_id IS NOT NULL
+         AND (
+           status = 'tomada'
+           OR EXISTS (
+             SELECT 1 FROM doses d
+              WHERE d.medicamento_id = doses_diarias.medicamento_id
+                AND d.horario = doses_diarias.horario
+           )
+         )
        ORDER BY horario, id`,
       [agora.horario, req.usuario.id, agora.data],
     );

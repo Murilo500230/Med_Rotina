@@ -2,7 +2,6 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Pressable,
   RefreshControl,
@@ -105,6 +104,8 @@ export default function HomeScreen() {
   const [erroAcao, setErroAcao] = useState('');
   const [emEdicao, setEmEdicao] = useState<Medicamento | null>(null);
   const [excluindo, setExcluindo] = useState<number | null>(null);
+  // Alert.alert não funciona no navegador: a confirmação de exclusão aparece no próprio cartão
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState<number | null>(null);
   const primeiraCarga = useRef(true);
   const lembretesSincronizados = useRef(false);
 
@@ -190,24 +191,13 @@ export default function HomeScreen() {
     await carregar(true);
   }
 
-  // T16: pede confirmação antes de excluir
-  function confirmarExclusao(medicamento: Medicamento) {
-    Alert.alert(
-      'Excluir medicamento',
-      `Deseja excluir ${medicamento.nome}? Os lembretes dele também serão cancelados.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Excluir', style: 'destructive', onPress: () => void excluir(medicamento) },
-      ],
-    );
-  }
-
   async function excluir(medicamento: Medicamento) {
     if (!token || excluindo !== null) return;
     setExcluindo(medicamento.id);
     setErroAcao('');
     try {
       await excluirMedicamento(medicamento.id, token);
+      setConfirmandoExclusao(null);
 
       try {
         await cancelarLembretesDoMedicamento(medicamento.id);
@@ -354,26 +344,49 @@ export default function HomeScreen() {
               <Text style={styles.horario}>
                 {medicamento.horarios.length > 0 ? medicamento.horarios.join(' • ') : medicamento.frequencia}
               </Text>
-              <View style={styles.acoes}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Editar ${medicamento.nome}`}
-                  disabled={excluindo !== null}
-                  onPress={() => setEmEdicao(medicamento)}>
-                  <Text style={styles.acaoEditar}>Editar</Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Excluir ${medicamento.nome}`}
-                  disabled={excluindo !== null}
-                  onPress={() => confirmarExclusao(medicamento)}>
-                  {excluindo === medicamento.id ? (
-                    <ActivityIndicator color={AppColors.danger} size="small" />
-                  ) : (
+              {confirmandoExclusao === medicamento.id ? (
+                <View style={styles.confirmacao}>
+                  <Text style={styles.confirmacaoTexto}>
+                    Excluir {medicamento.nome}? Os lembretes e as doses de hoje dele também serão removidos.
+                  </Text>
+                  <View style={styles.acoes}>
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={excluindo !== null}
+                      onPress={() => setConfirmandoExclusao(null)}>
+                      <Text style={styles.acaoCancelar}>Cancelar</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Confirmar exclusão de ${medicamento.nome}`}
+                      disabled={excluindo !== null}
+                      onPress={() => void excluir(medicamento)}>
+                      {excluindo === medicamento.id ? (
+                        <ActivityIndicator color={AppColors.danger} size="small" />
+                      ) : (
+                        <Text style={styles.acaoExcluir}>Sim, excluir</Text>
+                      )}
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.acoes}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Editar ${medicamento.nome}`}
+                    disabled={excluindo !== null}
+                    onPress={() => setEmEdicao(medicamento)}>
+                    <Text style={styles.acaoEditar}>Editar</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Excluir ${medicamento.nome}`}
+                    disabled={excluindo !== null}
+                    onPress={() => setConfirmandoExclusao(medicamento.id)}>
                     <Text style={styles.acaoExcluir}>Excluir</Text>
-                  )}
-                </Pressable>
-              </View>
+                  </Pressable>
+                </View>
+              )}
             </View>
           </View>
         ))}
@@ -462,6 +475,9 @@ const styles = StyleSheet.create({
   acoes: { flexDirection: 'row', gap: 18, marginTop: 8 },
   acaoEditar: { fontSize: 13, fontWeight: '600', color: AppColors.primary },
   acaoExcluir: { fontSize: 13, fontWeight: '600', color: AppColors.danger },
+  acaoCancelar: { fontSize: 13, fontWeight: '600', color: AppColors.textSecondary },
+  confirmacao: { marginTop: 8, gap: 8, backgroundColor: '#FBE9E9', borderRadius: 8, padding: 10 },
+  confirmacaoTexto: { color: AppColors.text, fontSize: 13, lineHeight: 18 },
   erroAcao: { color: AppColors.danger, fontSize: 13 },
   vazio: { alignItems: 'center', paddingVertical: 24, gap: 6 },
   vazioTitulo: { fontSize: 15, fontWeight: '600', color: AppColors.text },
