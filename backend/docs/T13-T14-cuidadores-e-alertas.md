@@ -137,7 +137,8 @@ Exclui um cuidador do usuário.
 ### Regra de Negócio de Atraso
 Uma dose é considerada em atraso quando:
 1. `status != 'tomada'` e `tomada_em IS NULL` na tabela `doses_diarias`.
-2. O horário previsto acrescido da tolerância (`horario + tolerancia`) for menor ou igual ao horário atual (no fuso `America/Sao_Paulo`), ou for referente a um dia anterior não concluído.
+2. O horário previsto acrescido da tolerância (`horario + tolerancia`) já tiver passado (no fuso `America/Sao_Paulo`) e a dose estiver dentro da janela de alerta: apenas as últimas **6 horas** (configurável via `ALERTA_JANELA_HORAS`). Doses mais antigas não geram aviso.
+   Doses de medicamentos excluídos, ou de horários que foram removidos na edição do medicamento, também não geram aviso.
 3. Tolerância padrão: **30 minutos** (configurável via `ALERTA_TOLERANCIA_MINUTOS`).
 
 ### Prevenção de Spam / Duplicidade

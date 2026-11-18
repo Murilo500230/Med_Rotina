@@ -49,8 +49,22 @@ exports.listar = async (req, res, next) => {
        WHERE usuario_id = ?
          AND data <= ?
          AND data >= DATE_SUB(?, INTERVAL ${dias - 1} DAY)
+         AND (
+           status = 'tomada'
+           OR (
+             medicamento_id IS NOT NULL
+             AND (
+               data < ?
+               OR EXISTS (
+                 SELECT 1 FROM doses d
+                  WHERE d.medicamento_id = doses_diarias.medicamento_id
+                    AND d.horario = doses_diarias.horario
+               )
+             )
+           )
+         )
        ORDER BY data DESC, horario ASC, id ASC`,
-      [req.usuario.id, agora.data, agora.data],
+      [req.usuario.id, agora.data, agora.data, agora.data],
     );
 
     const porDia = new Map();
